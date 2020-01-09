@@ -1,0 +1,29 @@
+# -*- python -*-
+# encoding: utf-8
+
+import os
+
+def configure(conf):
+    conf.env.append_value('MODULES_AVAILABLE', 'gconf')
+    if 'gconf' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('GCONF', 'gconf-2.0 >= 2.12 pygobject-2.0',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'gconf')
+
+
+def build(bld):
+    
+    if 'gconf' in bld.env['MODULES_TO_BUILD']:
+        bld.codegen('gconf', local_load_types=['gconf-arg-types.py'])
+        pyext = bld.create_pyext()
+        pyext.source = 'gconfmodule.c gconf.c gconf-fixes.c gconf-types.c'
+        pyext.target = 'gconf'
+        pyext.uselib = 'GCONF'
+        pyext.includes = '.'
+        pyext.install_path = '${PYTHONDIR}/gtk-2.0'
+
+        bld.install_files('${DATADIR}/pygtk/2.0/defs',
+                          ['gconf.defs'])
+
+        bld.install_files('${DATADIR}/pygtk/2.0/argtypes',
+                          'gconf-arg-types.py')
