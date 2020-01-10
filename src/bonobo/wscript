@@ -1,0 +1,80 @@
+# -*- python -*-
+# encoding: utf-8
+
+import os
+
+def configure(conf):
+    conf.env.append_value('MODULES_AVAILABLE', 'bonobo')
+    conf.env.append_value('MODULES_AVAILABLE', 'bonobo.ui')
+
+    if 'bonobo' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('BONOBO',
+                                  'libbonobo-2.0 >= 2.8.0 pygobject-2.0 pyorbit-2 >= 2.0.1',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'bonobo')
+
+    if 'bonobo.ui' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('BONOBOUI',
+                                  'libbonoboui-2.0 >= 2.8.0 pygobject-2.0 pyorbit-2 >= 2.0.1',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'bonobo.ui')
+
+
+def build(bld):
+    env = bld.env
+    
+    if 'bonobo' in bld.env['MODULES_TO_BUILD']:
+        py = bld.new_task_gen('py')
+        py.install_path = '${PYTHONDIR}/gtk-2.0/bonobo'
+        py.source = "__init__.py"
+
+        bld.codegen('bonobo', local_load_types=['bonobo-arg-types.py'],
+                    local_register=['../gnome/gnome-types.defs',
+                                    '../gnomecanvas/canvas.defs',
+                                    'bonobo-types.defs'],
+                    register=[os.path.join(env['PYGTK_DEFSDIR'], 'pango-types.defs'),
+                              os.path.join(env['PYGTK_DEFSDIR'], 'gdk-types.defs'),
+                              os.path.join(env['PYGTK_DEFSDIR'], 'gtk-types.defs')])
+
+        pyext = bld.create_pyext()
+        pyext.source = 'bonobomodule.c bonobo.c bonobo-arg.c pybonobo.c'
+        pyext.target = '_bonobo'
+        pyext.uselib = 'BONOBO'
+        pyext.includes = '.'
+        pyext.install_path = '${PYTHONDIR}/gtk-2.0/bonobo'
+
+        defsdir = bld.install_files('${DATADIR}/pygtk/2.0/defs',
+                                    ['bonobo.defs',
+                                     'bonobo-types.defs',
+                                     ])
+
+        pyext = bld.create_pyext()
+        pyext.source = 'activationmodule.c'
+        pyext.target = 'activation'
+        pyext.uselib = 'BONOBO'
+        pyext.includes = '.'
+        pyext.install_path = '${PYTHONDIR}/gtk-2.0/bonobo'
+
+    
+    if 'bonobo.ui' in bld.env['MODULES_TO_BUILD']:
+        bld.codegen('bonoboui', local_load_types=['bonobo-arg-types.py'],
+                    local_register=['../gnome/gnome-types.defs',
+                                    '../gnomecanvas/canvas.defs',
+                                    'bonobo-types.defs'],
+                    register=[os.path.join(env['PYGTK_DEFSDIR'], 'pango-types.defs'),
+                              os.path.join(env['PYGTK_DEFSDIR'], 'gdk-types.defs'),
+                              os.path.join(env['PYGTK_DEFSDIR'], 'gtk-types.defs')])
+
+        pyext = bld.create_pyext()
+        pyext.source = 'bonobouimodule.c bonoboui.c'
+        pyext.target = 'ui'
+        pyext.uselib = 'BONOBOUI'
+        pyext.includes = '.'
+        pyext.install_path = '${PYTHONDIR}/gtk-2.0/bonobo'
+
+        defsdir = bld.install_files('${DATADIR}/pygtk/2.0/defs',
+                                    ['bonoboui.defs',
+                                     'bonoboui-types.defs',
+                                     ])
+
+    bld.install_files('${DATADIR}/pygtk/2.0/argtypes', 'bonobo-arg-types.py')

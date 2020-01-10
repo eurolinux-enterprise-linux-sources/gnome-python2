@@ -1,0 +1,69 @@
+# -*- python -*-
+# encoding: utf-8
+
+import os
+
+def configure(conf):
+    conf.env.append_value('MODULES_AVAILABLE', 'gnomevfs')
+    conf.env.append_value('MODULES_AVAILABLE', 'gnomevfs.bonobo')
+    conf.env.append_value('MODULES_AVAILABLE', 'gnomevfs.module')
+
+    if 'gnomevfs' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('GNOMEVFS', 'gnome-vfs-2.0 >= 2.14 pygobject-2.0',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'gnomevfs')
+
+    if 'gnomevfs.bonobo' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('GNOMEVFSBONOBO', 'gnome-vfs-2.0 >= 2.14 bonobo-activation-2.0 >= 2.8.0'
+                                  ' pyorbit-2 >= 2.0.1 pygobject-2.0',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'gnomevfs.bonobo')
+
+    if 'gnomevfs.module' in conf.env['ENABLE_MODULES'] or 'all' in conf.env['ENABLE_MODULES']:
+        if conf.pkg_check_modules('GNOMEVFSMODULE', 'gnome-vfs-module-2.0 >= 2.14 bonobo-activation-2.0 >= 2.8.0'
+                                  ' pyorbit-2 >= 2.0.1 pygobject-2.0',
+                                  mandatory=False):
+            conf.env.append_value('MODULES_TO_BUILD', 'gnomevfs.module')
+
+
+def build(bld):
+    
+    if 'gnomevfs' in bld.env['MODULES_TO_BUILD']:
+        vfsdir = '${PYTHONDIR}/gtk-2.0/gnomevfs'
+        py = bld.new_task_gen('py')
+        py.install_path = vfsdir
+        py.source = "__init__.py"
+
+        pyext = bld.create_pyext()
+        pyext.source = '''
+vfsmodule.c vfs-uri.c vfs-file-info.c vfs-dir-handle.c
+vfs-handle.c vfs-xfer-progress-info.c vfs-context.c
+vfs-async-handle.c vfs-volume.c vfs-drive.c vfs-volume-monitor.c
+'''
+        pyext.target = '_gnomevfs'
+        pyext.uselib = 'GNOMEVFS'
+        pyext.includes = '.'
+        pyext.install_path = vfsdir
+
+    if 'gnomevfs.bonobo' in bld.env['MODULES_TO_BUILD']:
+        pyext = bld.create_pyext()
+        pyext.source = 'vfsbonobomodule.c'
+        pyext.target = 'gnomevfsbonobo'
+        pyext.uselib = 'GNOMEVFSBONOBO'
+        pyext.includes = '.'
+        pyext.install_path = vfsdir
+
+    if 'gnomevfs.module' in bld.env['MODULES_TO_BUILD']:
+        pyembed = bld.new_task_gen('cc', 'shlib', 'pyembed')
+        pyembed.mac_bundle = True
+        pyembed.source = 'gnome-vfs-python-method.c'
+        pyembed.target = 'pythonmethod'
+        pyembed.uselib = 'GNOMEVFSMODULE'
+        pyembed.includes = '.'
+        pyembed.install_path = '${LIBDIR}/gnome-vfs-2.0/modules'
+
+        vfsmethoddir = os.path.join(pyembed.env['LIBDIR'], 'gnome-vfs-2.0', 'modules')
+        pyembed.env.append_value('CCDEFINES', 'GNOME_VFS_PYTHON_DIR="\\"%s\\""' % vfsmethoddir)
+
+    bld.install_files('${PREFIX}/include/gnome-python-2.0',
+                      ['pygnomevfs.h', 'pygnomevfsbonobo.h'])
