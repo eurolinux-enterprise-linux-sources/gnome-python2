@@ -19,7 +19,7 @@
 
 Name: gnome-python2
 Version: 2.28.1
-Release: 12%{?dist}
+Release: 14%{?dist}
 License: LGPLv2+
 Group: Development/Languages
 Summary: PyGNOME Python extension module
@@ -204,6 +204,12 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm {} \;
 rm -f %{python_sitearch}/bonobo/__init__.{pyc,pyo}
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.28.1-14
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.28.1-13
+- Mass rebuild 2013-12-27
+
 * Fri May 03 2013 Colin Walters <walters@verbum.org> - 2.28.1-12
 - Drop requires on bonobo-activation, since it is the same as libbonobo,
   but that package dropped the provides.
